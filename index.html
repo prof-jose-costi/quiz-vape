@@ -1,0 +1,1261 @@
+# Generate updated full HTML file with:
+# 1. 20 Multidisciplinary questions covering Português, Inglês, Espanhol, Literatura, Biologia, Física, Química, História, Geografia, Sociologia, Filosofia, Matemática, Educação Física, Artes.
+# 2. Options in all 20 questions constructed with similar character lengths to avoid length-based guessing bias.
+# 3. Mini-games duration increased to at least 30 seconds (timer = 30).
+# 4. Same features maintained: 75% score bonus, perfect score unlocks all 3 mini-games, random shuffling, local database storage with CSV export.
+
+html_code = """<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Educativo Multidisciplinar: PODs e Vapes</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #1a1a24;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #252636;
+            width: 100%;
+            max-width: 850px;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #3b3d54;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .title-badge {
+            background: #ff4757;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .stat-item {
+            background: #1a1a24;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid #3b3d54;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lives { color: #ff4757; }
+        .score { color: #2ed573; }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        h1, h2 { color: #ffffff; margin-bottom: 15px; text-align: center; }
+        p { margin-bottom: 15px; color: #a4b0be; line-height: 1.5; }
+
+        .subject-tag {
+            display: inline-block;
+            background: #3742fa;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #dfe4ea;
+            font-weight: 600;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #3b3d54;
+            background: #1a1a24;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: #70a1ff;
+        }
+
+        .btn {
+            background: #3742fa;
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn:hover { background: #5352ed; transform: translateY(-2px); }
+        .btn-success { background: #2ed573; }
+        .btn-success:hover { background: #26af5f; }
+        .btn-warning { background: #ffa502; color: #1a1a24; }
+        .btn-warning:hover { background: #eccc68; }
+        .btn-danger { background: #ff4757; }
+        .btn-secondary { background: #747d8c; }
+
+        .options-grid {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .option-btn {
+            background: #1a1a24;
+            border: 2px solid #3b3d54;
+            color: #dfe4ea;
+            padding: 16px;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            line-height: 1.4;
+        }
+
+        .option-btn:hover {
+            border-color: #70a1ff;
+            background: #2f3542;
+        }
+
+        .option-btn.correct { background: #2ed573 !important; border-color: #2ed573 !important; color: white; }
+        .option-btn.wrong { background: #ff4757 !important; border-color: #ff4757 !important; color: white; }
+
+        .feedback-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #1a1a24;
+            border-left: 5px solid #70a1ff;
+            display: none;
+        }
+
+        /* Canvas mini-games styling */
+        .game-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 380px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .game-controls-hint {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #ffa502;
+            margin-bottom: 10px;
+        }
+
+        .mobile-controls {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .ctrl-btn {
+            flex: 1;
+            padding: 12px;
+            background: #2f3542;
+            border: 1px solid #57606f;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+
+        /* Database Table styling */
+        .db-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #3b3d54;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #3b3d54;
+        }
+
+        th {
+            background: #1a1a24;
+            color: #70a1ff;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) { background: #2f3542; }
+
+        .admin-link {
+            text-align: right;
+            margin-top: 15px;
+        }
+
+        .admin-link button {
+            background: transparent;
+            border: none;
+            color: #57606f;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 0.85rem;
+        }
+
+        .admin-link button:hover { color: #a4b0be; }
+
+        .minigame-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .minigame-card {
+            background: #1a1a24;
+            border: 2px solid #3b3d54;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .minigame-card h3 { color: #ffa502; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <span class="title-badge">Quiz Multidisciplinar Maker</span>
+        <div class="stats-bar">
+            <div class="stat-item lives">❤️ <span id="lives-count">5</span></div>
+            <div class="stat-item score">⭐ <span id="score-count">0</span> pts</div>
+        </div>
+    </div>
+
+    <!-- TELA 1: CADASTRO -->
+    <div id="screen-register" class="screen active">
+        <h1>Desafio PODs & Vapes (20 Questões)</h1>
+        <p>Aprenda sobre os perigos dos cigarros eletrônicos através de 14 disciplinas escolares, teste seu conhecimento e jogue os minijogos de 30 segundos!</p>
+        
+        <form id="student-form" onsubmit="startQuiz(event)">
+            <div class="form-group">
+                <label for="student-name">Nome Completo do Aluno:</label>
+                <input type="text" id="student-name" required placeholder="Digite seu nome completo">
+            </div>
+            <div class="form-group">
+                <label for="student-class">Turma / Ano:</label>
+                <input type="text" id="student-class" required placeholder="Ex: 8º Ano A, 1º EM B">
+            </div>
+            <div class="form-group">
+                <label for="student-shift">Turno:</label>
+                <select id="student-shift" required>
+                    <option value="">Selecione o turno...</option>
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                    <option value="Noturno">Noturno</option>
+                    <option value="Integral">Integral</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">🚀 Iniciar Desafio (20 Perguntas)</button>
+        </form>
+
+        <div class="admin-link">
+            <button onclick="showAdminModal()">🔐 Banco de Dados dos Jogadores</button>
+        </div>
+    </div>
+
+    <!-- TELA 2: QUIZ -->
+    <div id="screen-quiz" class="screen">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <span class="subject-tag" id="subject-tag">DISCIPLINA</span>
+                <span style="color:#70a1ff; font-weight:bold; margin-left:8px;" id="question-tracker">Questão 1 de 20</span>
+            </div>
+            <span style="color:#ffa502; font-size:0.85rem;" id="points-worth">+100 pts</span>
+        </div>
+        
+        <h2 id="question-text" style="margin-top:15px; text-align:left;">Texto da questão...</h2>
+        
+        <div id="options-container" class="options-grid"></div>
+
+        <div id="feedback-box" class="feedback-box">
+            <h3 id="feedback-title" style="margin-bottom:5px;"></h3>
+            <p id="feedback-explanation" style="margin:0; color:#dfe4ea;"></p>
+            <button id="next-btn" class="btn" style="margin-top:15px;" onclick="nextQuestion()">Próxima Questão ➡️</button>
+        </div>
+    </div>
+
+    <!-- TELA 3: MINI-GAME SELECTION / ANNOUNCEMENT -->
+    <div id="screen-minigame-intro" class="screen">
+        <h1 id="minigame-title">🎮 Minijogo Desbloqueado (30 Segundos)!</h1>
+        <p id="minigame-desc">Mostre seus reflexos durante 30 segundos completos para garantir pontos extras!</p>
+        <div class="game-controls-hint" id="controls-hint">Controles: Setas do Teclado ou Botões na Tela</div>
+        
+        <div class="game-canvas-container">
+            <canvas id="gameCanvas" width="750" height="380"></canvas>
+        </div>
+
+        <div class="mobile-controls" id="mobile-controls-container">
+            <!-- Botões dinâmicos gerados via JS -->
+        </div>
+
+        <button id="start-minigame-btn" class="btn btn-success" onclick="runCurrentMiniGame()">▶️ Iniciar Minijogo (30s)</button>
+    </div>
+
+    <!-- TELA 4: RESULTADO FINAL -->
+    <div id="screen-results" class="screen">
+        <h1>🎉 Desafio Concluído!</h1>
+        <p id="result-summary" style="font-size:1.1rem; text-align:center; color:#ffffff;"></p>
+        
+        <div style="background:#1a1a24; padding:20px; border-radius:12px; margin:20px 0; border:1px solid #3b3d54;">
+            <h3>📊 Resumo do Desempenho</h3>
+            <p><strong>Aluno:</strong> <span id="res-name"></span></p>
+            <p><strong>Turma/Turno:</strong> <span id="res-class"></span></p>
+            <p><strong>Acertos no Quiz:</strong> <span id="res-correct"></span></p>
+            <p><strong>Bônus do Jogo (75% Bônus por acerto):</strong> <span id="res-bonus"></span></p>
+            <p style="font-size:1.4rem; color:#2ed573; margin-top:10px;"><strong>Pontuação Total Final:</strong> <span id="res-total"></span> pts</p>
+        </div>
+
+        <div id="perfect-score-banner" style="display:none; background:#2ed57322; border:2px solid #2ed573; padding:15px; border-radius:10px; margin-bottom:15px; text-align:center;">
+            🌟 <strong>DESEMPENHO PERFEITO! (20/20)</strong> Você gabaritou o desafio e desbloqueou a **Central de Todos os 3 Minijogos**!
+        </div>
+
+        <div id="all-games-section" style="display:none;">
+            <h3>🎮 Escolha qual minijogo quer jogar novamente (30s cada):</h3>
+            <div class="minigame-card-grid">
+                <div class="minigame-card">
+                    <h3>🏎️ Corrida Obstáculo</h3>
+                    <p>30s desviando de pods na pista!</p>
+                    <button class="btn btn-warning" onclick="launchStandaloneGame('car')">Jogar Agora (30s)</button>
+                </div>
+                <div class="minigame-card">
+                    <h3>🏃 Pitfall Runner</h3>
+                    <p>30s pulando e abaixando no circuito!</p>
+                    <button class="btn btn-warning" onclick="launchStandaloneGame('pitfall')">Jogar Agora (30s)</button>
+                </div>
+                <div class="minigame-card">
+                    <h3>🛡️ Escudo de Vida</h3>
+                    <p>30s pegando pulmões saudáveis!</p>
+                    <button class="btn btn-warning" onclick="launchStandaloneGame('catcher')">Jogar Agora (30s)</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="location.reload()">🔄 Jogar Novamente / Novo Aluno</button>
+        <button class="btn btn-secondary" onclick="showAdminModal()" style="margin-top:10px;">🔐 Ver Banco de Dados dos Resultados</button>
+    </div>
+
+    <!-- MODAL BANCO DE DADOS -->
+    <div id="modal-admin" class="screen">
+        <h2>📊 Banco de Dados dos Jogadores</h2>
+        <p>Registro local de pontuações de todos os alunos que responderam nesta máquina/navegador:</p>
+        
+        <div class="db-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Nome</th>
+                        <th>Turma</th>
+                        <th>Turno</th>
+                        <th>Acertos</th>
+                        <th>Pontos Total</th>
+                    </tr>
+                </thead>
+                <tbody id="db-table-body">
+                    <!-- Gerado dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <button class="btn btn-warning" onclick="exportCSV()">📥 Baixar Planilha (CSV)</button>
+        <button class="btn btn-danger" onclick="clearDatabase()" style="margin-top:8px;">🗑️ Limpar Banco de Dados</button>
+        <button class="btn btn-secondary" onclick="closeAdminModal()" style="margin-top:8px;">⬅️ Voltar</button>
+    </div>
+
+</div>
+
+<script>
+/* =========================================================
+   20 QUESTÕES MULTIDISCIPLINARES (ALTERNATIVAS DE TAMANHO PARECIDO)
+   ========================================================= */
+const masterQuestions = [
+    {
+        subject: "LÍNGUA PORTUGUESA",
+        question: "Na frase 'Os essências doces MASCARAM os riscos dos pods aos jovens', qual é a função sintática do verbo destacado?",
+        options: [
+            "Verbo transitivo direto, exigindo complemento sem preposição obrigatoriedade.",
+            "Verbo intransitivo puro, com sentido completo sem precisar de um complemento.",
+            "Verbo de ligação simples, indicando apenas estado permanente do sujeito em tela.",
+            "Verbo transitivo indireto, que exige preposição obrigatória em sua construção."
+        ],
+        correct: 0,
+        explanation: "Quem mascara, mascara algo ('os riscos'). O verbo 'mascaram' é transitivo direto e se liga diretamente ao objeto direto."
+    },
+    {
+        subject: "INGLÊS",
+        question: "In public health campaigns, what does the word 'HARM' mean in the phrase 'Vaping causes severe harm to lungs'?",
+        options: [
+            "Significa prejuízo ou dano à saúde dos tecidos.",
+            "Significa cura imediata para infecções respiratórias.",
+            "Significa alívio temporário de dores de cabeça.",
+            "Significa benefício direto para o ganho de peso."
+        ],
+        correct: 0,
+        explanation: "'Harm' significa dano, prejuízo ou estrago em inglês."
+    },
+    {
+        subject: "ESPANHOL",
+        question: "¿Cuál es la traducción correcta de la frase 'El vapeo daña los pulmones de los jóvenes de forma irreversible'?",
+        options: [
+            "El vapeo perjudica gravemente los pulmones de la juventud.",
+            "El cigarrillo limpia suavemente los pulmones de la juventud.",
+            "El humo cura rápidamente los bronquios de la juventud.",
+            "El vapor protege eficazmente los alveolos de la juventud."
+        ],
+        correct: 0,
+        explanation: "'Daña' se traduce directamente como 'perjudica' o 'daña' en español."
+    },
+    {
+        subject: "LITERATURA",
+        question: "Se um poeta do Romantismo 'Mal do Século' vivesse hoje, como a dependência química do vape seria retratada em sua obra?",
+        options: [
+            "Como uma ilusão moderna geradora de sofrimento físico e vício.",
+            "Como um símbolo de saúde perfeita e celebração do progresso.",
+            "Como uma cura milagrosa para a melancolia e tristeza da alma.",
+            "Como um artefato de sabedoria clássica sem qualquer risco vital."
+        ],
+        correct: 0,
+        explanation: "O Ultra-Romantismo focava na ilusão, autodestruição, vício e no sofrimento escapista."
+    },
+    {
+        subject: "BIOLOGIA",
+        question: "Como a nicotina contida no líquido do vape atua quimicamente no sistema nervoso central para gerar vício rápido?",
+        options: [
+            "Conecta-se a receptores de acetilcolina liberando dopamina no cérebro.",
+            "Bloqueia a produção de adrenalina gerando sono profundo constante.",
+            "Destrói imediatamente a membrana celular dos neurônios motores centrais.",
+            "Inibe o fluxo sanguíneo cerebral impedindo o raciocínio matemático rápido."
+        ],
+        correct: 0,
+        explanation: "A nicotina se liga aos receptores nicotínicos de acetilcolina, estimulando a liberação maciça de dopamina no sistema de recompensa do cérebro."
+    },
+    {
+        subject: "BIOLOGIA",
+        question: "Qual alteração fisiológica ocorre nas células dos alvéolos pulmonares ao absorverem o aerossol quente do vape?",
+        options: [
+            "Inflamação crônica e destruição dos cílios protetores respiratórios.",
+            "Aumento da capacidade de absorção de oxigênio pelo sangue venoso.",
+            "Multiplicação saudável de células de defesa contra bactérias de ar.",
+            "Regeneração acelerada de tecidos epiteliais desgastados pelo frio."
+        ],
+        correct: 0,
+        explanation: "O aerossol quente e tóxico paralisa os cílios respiratórios e causa inflamação tecidual nos alvéolos pulmonares."
+    },
+    {
+        subject: "FÍSICA",
+        question: "Fisicamente, qual é a mudança de estado da matéria que ocorre com o e-líquido na resistência elétrica do vape?",
+        options: [
+            "Vaporização rápida do líquido formando microgotículas em suspensão.",
+            "Sublimação direta do sólido em gás sem passar pelo estado líquido.",
+            "Condensação de gases frios em gotas aquosas espessas e viscosas.",
+            "Fusão de componentes sólidos pela alta temperatura do ambiente."
+        ],
+        correct: 0,
+        explanation: "O e-líquido passa por vaporização térmica, e ao sair do aparelho se condensa em microgotículas formando um aerossol."
+    },
+    {
+        subject: "QUÍMICA",
+        question: "O que é o aerossol expelido pelo cigarro eletrônico em comparação com o vapor de água pura simples?",
+        options: [
+            "Mistura complexa de solventes, metais pesados e compostos orgânicos.",
+            "Moléculas isoladas de H2O pura em estado gasoso aquecido ao sol.",
+            "Mistura de oxigênio puro com essências florais comestíveis e leves.",
+            "Gás hélio purificado combinado com sais minerais hidratantes do ar."
+        ],
+        correct: 0,
+        explanation: "Diferente de 'vapor de água', o aerossol contém propilenoglicol, glicerina, nicotina, formaldeído e metais como níquel e chumbo."
+    },
+    {
+        subject: "QUÍMICA",
+        question: "Qual substância aromatizante frequentemente usada nos e-líquidos causa a doença 'Pipoca Pulmonar'?",
+        options: [
+            "O Diacetil, composto orgânico que causa bronquiolite obliterante.",
+            "O Cloreto de Sódio, que cristaliza a garganta pelo calor extremo.",
+            "O Ácido Ascórbico, que reduz a imunidade dos glóbulos brancos do corpo.",
+            "O Bicarbonato de Cálcio, que endurece as artérias do coração humano."
+        ],
+        correct: 0,
+        explanation: "O diacetil é um aromatizante tóxico quando inalado, provocando cicatrizes irreversíveis e estreitamento dos bronquíolos."
+    },
+    {
+        subject: "HISTÓRIA",
+        question: "Analisando a história do tabagismo, qual estratégia do século XX se assemelha ao marketing atual dos PODs?",
+        options: [
+            "Associar o hábito ao apelo visual moderno, juventude e status social.",
+            "Vender o produto exclusivamente em farmácias como remédio de estômago.",
+            "Proibir propaganda em meios de comunicação de massa desde o início.",
+            "Promover o uso militar obrigatório para combater o estresse em guerras."
+        ],
+        correct: 0,
+        explanation: "A indústria do tabaco historicamente usa design sofisticado, sabores atraentes e forte apelo visual para atrair novos consumidores jovens."
+    },
+    {
+        subject: "GEOGRAFIA",
+        question: "De onde provém a grande maioria dos PODs descartáveis e vapes ilícitos comercializados ilegalmente no Brasil?",
+        options: [
+            "De rotas internacionais de contrabando através de fronteiras terrestres.",
+            "De indústrias nacionais devidamente fiscalizadas pelos estados do Sul.",
+            "De laboratórios comunitários mantidos por ONGs ambientais de ensino.",
+            "De importações diretas autorizadas pelos portos oficiais do Nordeste."
+        ],
+        correct: 0,
+        explanation: "A venda é proibida pela ANVISA no Brasil, alimentando rotas transfronteiriças de contrabando e mercado ilegal sem controle sanitário."
+    },
+    {
+        subject: "GEOGRAFIA",
+        question: "Qual o impacto ambiental do descarte de milhões de PODs em lixões comuns sem reciclagem adequada?",
+        options: [
+            "Contaminação do solo e lençóis freáticos por lítio e metais de baterias.",
+            "Fertilização natural do solo pelo acúmulo de glicerina e vapor d'água.",
+            "Biodegradação total do plástico em menos de duas semanas de exposição.",
+            "Purificação da água da chuva por ação das baterias elétricas solares."
+        ],
+        correct: 0,
+        explanation: "As baterias de íon de lítio e resíduos plásticos descartados vazam metais pesados tóxicos no meio ambiente."
+    },
+    {
+        subject: "SOCIOLOGIA",
+        question: "Como o conceito sociológico de 'Pressão dos Pares' (Peer Pressure) influencia o primeiro uso de vapes?",
+        options: [
+            "Cria o desejo de pertencimento ao grupo social e aceitação entre amigos.",
+            "Estimula a busca isolada por leitura crítica de manuais de saúde pública.",
+            "Ocorre por imposição formal e obrigatória de professores em sala de aula.",
+            "Decorre de decisões individuais tomadas em isolamento digital completo."
+        ],
+        correct: 0,
+        explanation: "A busca por aceitação social e a influência do grupo de convivência imediata impulsionam a experimentação entre adolescentes."
+    },
+    {
+        subject: "FILOSOFIA",
+        question: "Sob a ótica da Ética e da Autonomia kantiana, a dependência química gerada pela nicotina causa qual impacto?",
+        options: [
+            "Reduz a autonomia individual ao submeter a vontade do sujeito ao vício.",
+            "Amplia a liberdade de escolha do cidadão perante o consumo de bens.",
+            "Eleva a capacidade moral do indivíduo de tomar decisões imparciais.",
+            "Garante a independência emocional perante os desejos materiais do corpo."
+        ],
+        correct: 0,
+        explanation: "Para a Filosofia Ética, o vício escraviza a vontade do indivíduo, diminuindo sua autonomia e liberdade racional de decisão."
+    },
+    {
+        subject: "MATEMÁTICA",
+        question: "Se um POD possui $50\\text{ mg/mL}$ de nicotina e volume de $2\\text{ mL}$, qual a quantidade total de nicotina em miligramas?",
+        options: [
+            "Possui exatamente 100 mg de nicotina no dispositivo.",
+            "Possui exatamente 25 mg de nicotina no dispositivo.",
+            "Possui exatamente 52 mg de nicotina no dispositivo.",
+            "Possui exatamente 150 mg de nicotina no dispositivo."
+        ],
+        correct: 0,
+        explanation: "Cálculo: $50\\text{ mg/mL} \\times 2\\text{ mL} = 100\\text{ mg}$ de nicotina pura."
+    },
+    {
+        subject: "MATEMÁTICA",
+        question: "Se um jovem gasta R$ 90,00 por semana em PODs descartáveis, quanto gastará em um período de 10 semanas de uso?",
+        options: [
+            "Gastará o valor total de R$ 900,00 reais.",
+            "Gastará o valor total de R$ 450,00 reais.",
+            "Gastará o valor total de R$ 990,00 reais.",
+            "Gastará o valor total de R$ 1.200,00 reais."
+        ],
+        correct: 0,
+        explanation: "Cálculo simples: $\\text{R\\$} 90,00 \\times 10 = \\text{R\\$} 900,00$."
+    },
+    {
+        subject: "EDUCAÇÃO FÍSICA",
+        question: "De que maneira a inalação de nicotina e toxinas do vape prejudica diretamente o rendimento de um atleta?",
+        options: [
+            "Diminui o transporte de oxigênio no sangue e a capacidade pulmonar.",
+            "Aumenta a força muscular e melhora o tempo de recuperação articular.",
+            "Acelera a regeneração das fibras musculares após exercícios intensos.",
+            "Melhora a flexibilidade muscular e a coordenação motora fina geral."
+        ],
+        correct: 0,
+        explanation: "O comprometimento pulmonar e a vasoconstrição diminuem o fluxo sanguíneo oxigenado para os músculos, causando fadiga precoce."
+    },
+    {
+        subject: "EDUCAÇÃO FÍSICA",
+        question: "O que ocorre com a frequência cardíaca de uma pessoa imediatamente após tragar um POD de alta nicotina?",
+        options: [
+            "Eleva-se rapidamente devido ao estímulo de adrenalina no sistema.",
+            "Reduz drasticamente induzindo um estado de relaxamento muscular.",
+            "Permanece imutável por não afetar o sistema circulatório do corpo.",
+            "Diminui os batimentos para níveis de repouso e sono profundo."
+        ],
+        correct: 0,
+        explanation: "A nicotina ativa o sistema nervoso simpático, liberando adrenalina, acelerando os batimentos cardíacos e elevando a pressão."
+    },
+    {
+        subject: "ARTES",
+        question: "Como o design visual moderno dos PODs (formatos de pen drive, cores vibrantes) opera no consumo?",
+        options: [
+            "Normaliza o uso através do apelo estético moderno e disfarce do risco.",
+            "Denuncia abertamente a toxicidade por meio de símbolos de alerta rústicos.",
+            "Busca recriar o visual das esculturas clássicas do período Renascentista.",
+            "Serve exclusivamente para facilitar a reciclagem industrial das peças."
+        ],
+        correct: 0,
+        explanation: "O design arrojado e colorido transforma um dispositivo nocivo em um objeto estético atraente e de fácil dissimulação."
+    },
+    {
+        subject: "SAÚDE E SOCIEDADE",
+        question: "Qual a síndrome respiratória aguda diretamente causada pelo vaping grave que pode levar à UTI?",
+        options: [
+            "A síndrome EVALI, que causa danos inflamatórios graves aos pulmões.",
+            "A infecção da Asma Alérgica leve, facilmente curada com chás caseiros.",
+            "O resfriado comum decorrente de mudanças bruscas de temperatura do ar.",
+            "A faringite passageira provocada pelo consumo de bebidas muito geladas."
+        ],
+        correct: 0,
+        explanation: "EVALI é a lesão pulmonar grave associada ao uso de e-cigarettes, podendo causar insuficiência respiratória severa."
+    }
+];
+
+/* ESTADO GLOBAL DO JOGO */
+let currentQuestions = [];
+let currentQIndex = 0;
+let lives = 5;
+let score = 0;
+let correctCount = 0;
+let studentData = {};
+let gameLoopId = null;
+let currentMiniGameType = 'car';
+
+/* INICIALIZAÇÃO E SHUFFLE */
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function startQuiz(e) {
+    e.preventDefault();
+    studentData = {
+        name: document.getElementById('student-name').value.trim(),
+        className: document.getElementById('student-class').value.trim(),
+        shift: document.getElementById('student-shift').value,
+        date: new Date().toLocaleString('pt-BR')
+    };
+
+    // Embaralha questões e alternativas
+    currentQuestions = shuffleArray(masterQuestions).map(q => {
+        const opts = q.options.map((opt, idx) => ({ text: opt, isCorrect: idx === q.correct }));
+        const shuffledOpts = shuffleArray(opts);
+        return {
+            subject: q.subject,
+            question: q.question,
+            options: shuffledOpts.map(o => o.text),
+            correct: shuffledOpts.findIndex(o => o.isCorrect),
+            explanation: q.explanation
+        };
+    });
+
+    currentQIndex = 0;
+    lives = 5;
+    score = 0;
+    correctCount = 0;
+
+    updateHeaderUI();
+    showScreen('screen-quiz');
+    loadQuestion();
+}
+
+function updateHeaderUI() {
+    document.getElementById('lives-count').innerText = lives;
+    document.getElementById('score-count').innerText = score;
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function loadQuestion() {
+    const q = currentQuestions[currentQIndex];
+    document.getElementById('subject-tag').innerText = q.subject;
+    document.getElementById('question-tracker').innerText = `Questão ${currentQIndex + 1} de ${currentQuestions.length}`;
+    document.getElementById('question-text').innerText = q.question;
+    
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    
+    document.getElementById('feedback-box').style.display = 'none';
+
+    q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = `${String.fromCharCode(65 + idx)}) ${optText}`;
+        btn.onclick = () => selectOption(idx);
+        container.appendChild(btn);
+    });
+}
+
+function selectOption(selectedIndex) {
+    const q = currentQuestions[currentQIndex];
+    const optionBtns = document.querySelectorAll('.option-btn');
+    
+    optionBtns.forEach(btn => btn.style.pointerEvents = 'none');
+
+    const feedbackBox = document.getElementById('feedback-box');
+    const feedbackTitle = document.getElementById('feedback-title');
+    const feedbackExp = document.getElementById('feedback-explanation');
+    
+    if (selectedIndex === q.correct) {
+        optionBtns[selectedIndex].classList.add('correct');
+        score += 100;
+        correctCount++;
+        feedbackTitle.innerText = "✅ Resposta Correta! (+100 pts)";
+        feedbackTitle.style.color = "#2ed573";
+    } else {
+        optionBtns[selectedIndex].classList.add('wrong');
+        optionBtns[q.correct].classList.add('correct');
+        lives--;
+        feedbackTitle.innerText = "❌ Resposta Incorreta! (-1 Vida)";
+        feedbackTitle.style.color = "#ff4757";
+    }
+
+    updateHeaderUI();
+    feedbackExp.innerText = q.explanation;
+    feedbackBox.style.display = 'block';
+
+    if (lives <= 0) {
+        document.getElementById('next-btn').innerText = "Ver Resultado Final 🏁";
+    }
+}
+
+function nextQuestion() {
+    if (lives <= 0 || currentQIndex >= currentQuestions.length - 1) {
+        finishQuiz();
+        return;
+    }
+
+    currentQIndex++;
+    
+    // Gatilho para Minijogos intercalados a cada 5 questões
+    if (currentQIndex % 5 === 0) {
+        setupMiniGameTrigger();
+    } else {
+        loadQuestion();
+    }
+}
+
+function finishQuiz() {
+    const baseQuestionScore = correctCount * 100;
+    const gameBonusScore = Math.round(baseQuestionScore * 0.75);
+    const finalTotalScore = score + gameBonusScore;
+
+    document.getElementById('res-name').innerText = studentData.name;
+    document.getElementById('res-class').innerText = `${studentData.className} (${studentData.shift})`;
+    document.getElementById('res-correct').innerText = `${correctCount} de ${currentQuestions.length}`;
+    document.getElementById('res-bonus').innerText = `+${gameBonusScore} pts (75% Bônus)`;
+    document.getElementById('res-total').innerText = finalTotalScore;
+
+    const isPerfect = (correctCount === currentQuestions.length);
+    document.getElementById('perfect-score-banner').style.display = isPerfect ? 'block' : 'none';
+    document.getElementById('all-games-section').style.display = isPerfect ? 'block' : 'none';
+
+    saveToDatabase({
+        date: studentData.date,
+        name: studentData.name,
+        className: studentData.className,
+        shift: studentData.shift,
+        correct: `${correctCount}/${currentQuestions.length}`,
+        totalScore: finalTotalScore
+    });
+
+    showScreen('screen-results');
+}
+
+/* =========================================================
+   BANCO DE DADOS LOCAL
+   ========================================================= */
+function saveToDatabase(entry) {
+    let db = JSON.parse(localStorage.getItem('quiz_vape_db') || '[]');
+    db.unshift(entry);
+    localStorage.setItem('quiz_vape_db', JSON.stringify(db));
+}
+
+function showAdminModal() {
+    const db = JSON.parse(localStorage.getItem('quiz_vape_db') || '[]');
+    const tbody = document.getElementById('db-table-body');
+    tbody.innerHTML = '';
+
+    if (db.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum resultado registrado ainda.</td></tr>';
+    } else {
+        db.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.date}</td>
+                <td><strong>${item.name}</strong></td>
+                <td>${item.className}</td>
+                <td>${item.shift}</td>
+                <td>${item.correct}</td>
+                <td style="color:#2ed573; font-weight:bold;">${item.totalScore}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    showScreen('modal-admin');
+}
+
+function closeAdminModal() {
+    if (studentData.name) {
+        showScreen('screen-results');
+    } else {
+        showScreen('screen-register');
+    }
+}
+
+function exportCSV() {
+    const db = JSON.parse(localStorage.getItem('quiz_vape_db') || '[]');
+    if (db.length === 0) {
+        alert("Sem dados para exportar.");
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,Data,Nome,Turma,Turno,Acertos,PontosTotal\\n";
+    db.forEach(r => {
+        csvContent += `"${r.date}","${r.name}","${r.className}","${r.shift}","${r.correct}","${r.totalScore}"\\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `resultados_quiz_vape_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function clearDatabase() {
+    if (confirm("Tem certeza que deseja apagar todo o histórico de jogadores?")) {
+        localStorage.removeItem('quiz_vape_db');
+        showAdminModal();
+    }
+}
+
+/* =========================================================
+   MINIJOGOS COM DURAÇÃO DE 30 SEGUNDOS
+   ========================================================= */
+function setupMiniGameTrigger() {
+    const games = ['car', 'pitfall', 'catcher'];
+    currentMiniGameType = games[Math.floor(Math.random() * games.length)];
+    prepareMiniGameUI(currentMiniGameType);
+    showScreen('screen-minigame-intro');
+}
+
+function prepareMiniGameUI(type) {
+    const titleEl = document.getElementById('minigame-title');
+    const descEl = document.getElementById('minigame-desc');
+    const controlsHint = document.getElementById('controls-hint');
+    const controlsContainer = document.getElementById('mobile-controls-container');
+    controlsContainer.innerHTML = '';
+
+    if (type === 'car') {
+        titleEl.innerText = "🏎️ Pista Limpa: Desvie dos PODs (30 Segundos)";
+        descEl.innerText = "Desvie do tráfego contaminado durante 30 segundos de alta velocidade para pontuar!";
+        controlsHint.innerText = "Controles: Setas Esquerda/Direita ou Botões na tela";
+        controlsContainer.innerHTML = `
+            <button class="ctrl-btn" onmousedown="moveCarLeft()" ontouchstart="moveCarLeft()">⬅️ Esquerda</button>
+            <button class="ctrl-btn" onmousedown="moveCarRight()" ontouchstart="moveCarRight()">Direita ➡️</button>
+        `;
+    } else if (type === 'pitfall') {
+        titleEl.innerText = "🏃 Pitfall Runner: Sobrevivência (30 Segundos)";
+        descEl.innerText = "30 Segundos de corrida! PULE fumaças no chão e ABAIXE de pods no ar!";
+        controlsHint.innerText = "Controles: Seta Cima (Pular), Seta Baixo (Abaixar) ou Botões";
+        controlsContainer.innerHTML = `
+            <button class="ctrl-btn" onclick="pitfallJump()">⬆️ PULAR</button>
+            <button class="ctrl-btn" onclick="pitfallDuck()">⬇️ ABAIXAR</button>
+        `;
+    } else {
+        titleEl.innerText = "🛡️ Escudo de Saúde: Colete Vida (30 Segundos)";
+        descEl.innerText = "Capture o máximo de pulmões saudáveis durante 30 segundos completos!";
+        controlsHint.innerText = "Controles: Mova o escudo com o mouse/toque ou Setas Esquerda/Direita";
+        controlsContainer.innerHTML = `
+            <button class="ctrl-btn" onmousedown="moveCatcherLeft()" ontouchstart="moveCatcherLeft()">⬅️ Mover</button>
+            <button class="ctrl-btn" onmousedown="moveCatcherRight()" ontouchstart="moveCatcherRight()">Mover ➡️</button>
+        `;
+    }
+}
+
+function launchStandaloneGame(type) {
+    currentMiniGameType = type;
+    prepareMiniGameUI(type);
+    showScreen('screen-minigame-intro');
+}
+
+function runCurrentMiniGame() {
+    document.getElementById('start-minigame-btn').style.display = 'none';
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (gameLoopId) clearInterval(gameLoopId);
+
+    if (currentMiniGameType === 'car') {
+        runCarGame(canvas, ctx);
+    } else if (currentMiniGameType === 'pitfall') {
+        runPitfallGame(canvas, ctx);
+    } else {
+        runCatcherGame(canvas, ctx);
+    }
+}
+
+function finishMiniGame(earnedScore, message) {
+    if (gameLoopId) clearInterval(gameLoopId);
+    score += earnedScore;
+    updateHeaderUI();
+    
+    alert(`${message} Bônus obtido: +${earnedScore} pts!`);
+    document.getElementById('start-minigame-btn').style.display = 'inline-block';
+
+    if (studentData.name && currentQIndex < currentQuestions.length) {
+        showScreen('screen-quiz');
+        loadQuestion();
+    } else {
+        showScreen('screen-results');
+    }
+}
+
+/* --- MINIJOGO 1: CARROS (30 Segundos) --- */
+let carX = 350;
+function moveCarLeft() { carX = Math.max(180, carX - 50); }
+function moveCarRight() { carX = Math.min(520, carX + 50); }
+
+function runCarGame(canvas, ctx) {
+    carX = 350;
+    let timer = 30; // 30 SEGUNDOS EXATOS
+    let obstacles = [];
+    let frame = 0;
+
+    const keyHandler = (e) => {
+        if (e.key === 'ArrowLeft') moveCarLeft();
+        if (e.key === 'ArrowRight') moveCarRight();
+    };
+    window.addEventListener('keydown', keyHandler);
+
+    gameLoopId = setInterval(() => {
+        frame++;
+        if (frame % 30 === 0) timer--;
+
+        if (frame % 18 === 0) {
+            const lanes = [200, 310, 420, 530];
+            obstacles.push({
+                x: lanes[Math.floor(Math.random() * lanes.length)],
+                y: -40,
+                speed: 6 + Math.random() * 4
+            });
+        }
+
+        ctx.fillStyle = '#1e272e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#485460';
+        ctx.fillRect(150, 0, 450, canvas.height);
+        
+        ctx.strokeStyle = '#ffffff';
+        ctx.setLineDash([20, 20]);
+        ctx.lineDashOffset = -frame * 8;
+        ctx.beginPath();
+        ctx.moveTo(300, 0); ctx.lineTo(300, canvas.height);
+        ctx.moveTo(450, 0); ctx.lineTo(450, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#2ed573';
+        ctx.fillRect(carX, 300, 40, 60);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(carX + 5, 310, 30, 15);
+
+        for (let i = 0; i < obstacles.length; i++) {
+            let obs = obstacles[i];
+            obs.y += obs.speed;
+
+            ctx.fillStyle = '#ff4757';
+            ctx.fillRect(obs.x, obs.y, 35, 50);
+            ctx.fillStyle = '#ffa502';
+            ctx.fillRect(obs.x + 5, obs.y + 5, 25, 10);
+
+            if (obs.x < carX + 40 && obs.x + 35 > carX && obs.y < 360 && obs.y + 50 > 300) {
+                window.removeEventListener('keydown', keyHandler);
+                finishMiniGame(50, "💥 Você colidiu com um Pod!");
+                return;
+            }
+        }
+
+        ctx.fillStyle = '#ffa502';
+        ctx.font = 'bold 20px Segoe UI';
+        ctx.fillText(`Tempo Restante: ${timer}s`, 20, 35);
+
+        if (timer <= 0) {
+            window.removeEventListener('keydown', keyHandler);
+            finishMiniGame(200, "🏆 Percurso completo de 30s concluído!");
+        }
+    }, 1000 / 30);
+}
+
+/* --- MINIJOGO 2: PITFALL RUNNER (30 Segundos com Pulo e Abaixar) --- */
+let runnerState = 'run';
+let runnerY = 270;
+let runnerVelocityY = 0;
+
+function pitfallJump() {
+    if (runnerState === 'run') {
+        runnerState = 'jump';
+        runnerVelocityY = -14;
+    }
+}
+
+function pitfallDuck() {
+    if (runnerState === 'run') {
+        runnerState = 'duck';
+        setTimeout(() => { if (runnerState === 'duck') runnerState = 'run'; }, 800);
+    }
+}
+
+function runPitfallGame(canvas, ctx) {
+    runnerState = 'run';
+    runnerY = 270;
+    runnerVelocityY = 0;
+    let timer = 30; // 30 SEGUNDOS EXATOS
+    let obstacles = [];
+    let frame = 0;
+
+    const keyHandler = (e) => {
+        if (e.key === 'ArrowUp') pitfallJump();
+        if (e.key === 'ArrowDown') pitfallDuck();
+    };
+    window.addEventListener('keydown', keyHandler);
+
+    gameLoopId = setInterval(() => {
+        frame++;
+        if (frame % 30 === 0) timer--;
+
+        if (runnerState === 'jump') {
+            runnerY += runnerVelocityY;
+            runnerVelocityY += 0.9;
+            if (runnerY >= 270) {
+                runnerY = 270;
+                runnerState = 'run';
+            }
+        }
+
+        if (frame % 32 === 0) {
+            const isHigh = Math.random() > 0.5;
+            obstacles.push({
+                x: canvas.width,
+                type: isHigh ? 'high' : 'low',
+                speed: 7
+            });
+        }
+
+        ctx.fillStyle = '#2f3542';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#747d8c';
+        ctx.fillRect(0, 320, canvas.width, 60);
+
+        ctx.fillStyle = '#70a1ff';
+        if (runnerState === 'duck') {
+            ctx.fillRect(100, 295, 45, 25);
+        } else {
+            ctx.fillRect(100, runnerY, 30, 50);
+        }
+
+        for (let i = 0; i < obstacles.length; i++) {
+            let obs = obstacles[i];
+            obs.x -= obs.speed;
+
+            if (obs.type === 'low') {
+                ctx.fillStyle = '#ff4757';
+                ctx.fillRect(obs.x, 290, 30, 30);
+            } else {
+                ctx.fillStyle = '#ffa502';
+                ctx.fillRect(obs.x, 240, 40, 25);
+            }
+
+            let pX = 100, pW = 30;
+            let pY = (runnerState === 'duck') ? 295 : runnerY;
+            let pH = (runnerState === 'duck') ? 25 : 50;
+
+            let oX = obs.x, oW = (obs.type === 'low' ? 30 : 40);
+            let oY = (obs.type === 'low' ? 290 : 240);
+            let oH = (obs.type === 'low' ? 30 : 25);
+
+            if (pX < oX + oW && pX + pW > oX && pY < oY + oH && pY + pH > oY) {
+                window.removeEventListener('keydown', keyHandler);
+                finishMiniGame(50, "💥 Você colidiu com um obstáculo!");
+                return;
+            }
+        }
+
+        ctx.fillStyle = '#2ed573';
+        ctx.font = 'bold 20px Segoe UI';
+        ctx.fillText(`Sobreviva: ${timer}s`, 20, 35);
+        ctx.fillText(`Ação: ${runnerState.toUpperCase()}`, 20, 65);
+
+        if (timer <= 0) {
+            window.removeEventListener('keydown', keyHandler);
+            finishMiniGame(200, "🏃 Corrida de 30s concluída com maestria!");
+        }
+    }, 1000 / 30);
+}
+
+/* --- MINIJOGO 3: ESCUDO DE SAÚDE (30 Segundos) --- */
+let catcherX = 350;
+function moveCatcherLeft() { catcherX = Math.max(20, catcherX - 40); }
+function moveCatcherRight() { catcherX = Math.min(650, catcherX + 40); }
+
+function runCatcherGame(canvas, ctx) {
+    catcherX = 350;
+    let timer = 30; // 30 SEGUNDOS EXATOS
+    let items = [];
+    let frame = 0;
+    let caughtCount = 0;
+
+    canvas.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        catcherX = e.clientX - rect.left - 40;
+    };
+
+    gameLoopId = setInterval(() => {
+        frame++;
+        if (frame % 30 === 0) timer--;
+
+        if (frame % 16 === 0) {
+            items.push({
+                x: Math.random() * (canvas.width - 30),
+                y: -20,
+                type: Math.random() > 0.3 ? 'good' : 'bad',
+                speed: 5 + Math.random() * 3
+            });
+        }
+
+        ctx.fillStyle = '#1a1a24';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#2ed573';
+        ctx.fillRect(catcherX, 330, 80, 15);
+
+        for (let i = 0; i < items.length; i++) {
+            let it = items[i];
+            it.y += it.speed;
+
+            if (it.type === 'good') {
+                ctx.fillStyle = '#70a1ff';
+                ctx.beginPath();
+                ctx.arc(it.x, it.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillStyle = '#ff4757';
+                ctx.fillRect(it.x - 10, it.y - 10, 20, 20);
+            }
+
+            if (it.y >= 320 && it.y <= 345 && it.x >= catcherX && it.x <= catcherX + 80) {
+                if (it.type === 'good') caughtCount++;
+                else caughtCount = Math.max(0, caughtCount - 1);
+                items.splice(i, 1);
+                i--;
+            }
+        }
+
+        ctx.fillStyle = '#ffa502';
+        ctx.font = 'bold 20px Segoe UI';
+        ctx.fillText(`Tempo: ${timer}s | Pulmões Coletados: ${caughtCount}`, 20, 35);
+
+        if (timer <= 0) {
+            canvas.onmousemove = null;
+            finishMiniGame(caughtCount * 15, `🛡️ Desafio de 30s Finalizado! ${caughtCount} coletados.`);
+        }
+    }, 1000 / 30);
+}
+</script>
+</body>
+</html>
+"""
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+print("Updated index.html created with 20 multidisciplinary questions and 30s minigames!")
