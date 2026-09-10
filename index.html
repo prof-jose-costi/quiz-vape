@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio PODs & Vapes</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #12151e; color: #fff; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; }
+        .card { background: #1a1e2d; width: 100%; max-width: 550px; padding: 25px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); position: relative; }
+        
+        /* Stats Topo */
+        .header-stats { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .badge-group { display: flex; gap: 10px; }
+        .badge { background: #262b3d; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .badge-red { background: #e63946; color: #fff; }
+        .badge-yellow { background: #fca311; color: #000; }
+        .badge-tag { background: #e63946; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+
+        /* Estilos de Telas */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        h1 { text-align: center; font-size: 1.5rem; margin-bottom: 12px; }
+        p.desc { color: #a0aab8; text-align: center; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.4; }
+        
+        /* Formulário */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #d0d7de; }
+        input, select { width: 100%; padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; color: #fff; font-size: 0.95rem; }
+        input:focus, select:focus { outline: none; border-color: #2ea043; }
+
+        /* Botões */
+        .btn { width: 100%; padding: 14px; background: #2ea043; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn:hover { background: #3fb950; }
+        
+        /* Opções do Quiz */
+        .options-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .option-btn { background: #212636; border: 1px solid #30363d; color: #fff; padding: 12px; border-radius: 8px; text-align: left; cursor: pointer; font-size: 0.95rem; transition: 0.2s; }
+        .option-btn:hover { background: #30363d; }
+        
+        /* Área de Minijogo */
+        .game-box { background: #0d1117; border-radius: 8px; padding: 20px; text-align: center; margin-top: 15px; border: 1px dashed #30363d; }
+        .game-btn { background: #e63946; border: none; color: white; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; border-radius: 50px; cursor: pointer; margin-top: 15px; width: 100%; }
+        
+        .footer-link { text-align: center; margin-top: 20px; }
+        .footer-link a { color: #8b949e; text-decoration: none; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <!-- Topo com Status -->
+        <div class="header-stats">
+            <span class="badge-tag">QUIZ MULTIDISCIPLINAR MAKER</span>
+            <div class="badge-group">
+                <span class="badge badge-red" id="lives">❤️ 5</span>
+                <span class="badge badge-yellow" id="score">⭐ 0 pts</span>
+            </div>
+        </div>
+
+        <!-- TELA 1: CADASTRO -->
+        <div id="screen-login" class="screen active">
+            <h1>Desafio PODs & Vapes (20 Questões)</h1>
+            <p class="desc">Aprenda sobre os perigos dos cigarros eletrônicos através de 14 disciplinas escolares, teste seu conhecimento e jogue os minijogos de 30 segundos!</p>
+
+            <form id="quizForm" onsubmit="iniciarJogo(event)">
+                <div class="form-group">
+                    <label for="nome">Nome Completo do Aluno:</label>
+                    <input type="text" id="nome" placeholder="Digite seu nome completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="turma">Turma / Ano:</label>
+                    <input type="text" id="turma" placeholder="Ex: 8º Ano A, 1º EM B" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="turno">Turno:</label>
+                    <select id="turno" required>
+                        <option value="" disabled selected>Selecione o turno...</option>
+                        <option value="Manhã">Manhã</option>
+                        <option value="Tarde">Tarde</option>
+                        <option value="Noite">Noite</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn">🧪 Iniciar Desafio (20 Perguntas)</button>
+            </form>
+            <div class="footer-link">
+                <a href="#">🔒 Banco de Dados dos Jogadores</a>
+            </div>
+        </div>
+
+        <!-- TELA 2: QUIZ -->
+        <div id="screen-quiz" class="screen">
+            <h2 id="discipline-tag" style="font-size: 0.9rem; color: #2ea043; text-transform: uppercase;">MÉDICA / BIOLOGIA</h2>
+            <h3 id="question-text" style="margin: 10px 0 15px 0;">Carregando pergunta...</h3>
+            <div class="options-grid" id="options-container"></div>
+        </div>
+
+        <!-- TELA 3: MINIJOGO (30s) -->
+        <div id="screen-game" class="screen">
+            <h2>🎮 Minijogo Maker!</h2>
+            <p class="desc">Destrua o máximo de vapes em 30 segundos!</p>
+            <div class="game-box">
+                <p>Tempo Restante: <strong id="timer" style="color: #fca311;">30s</strong></p>
+                <p style="margin-top: 10px;">Vapes Destruídos: <strong id="game-clicks" style="color: #2ea043;">0</strong></p>
+                <button class="game-btn" onclick="contarClique()">💨 CLIQUE AQUI!</button>
+            </div>
+        </div>
+
+        <!-- TELA 4: FIM DE JOGO -->
+        <div id="screen-end" class="screen" style="text-align: center;">
+            <h2>🎉 Desafio Concluído!</h2>
+            <p class="desc" style="margin-top: 10px;">Parabéns! Você completou o desafio sobre os riscos do vape.</p>
+            <h3 id="final-score" style="margin: 20px 0; font-size: 1.8rem; color: #fca311;">0 Pts</h3>
+            <button class="btn" onclick="location.reload()">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Perguntas Multi-disciplinares
+        const questoes = [
+            {
+                materia: "Biologia",
+                pergunta: "Qual substância altamente viciante é encontrada na maioria dos vapes?",
+                opcoes: ["Nicotina", "Vitamina C", "Sódio", "Glicose"],
+                correta: 0
+            },
+            {
+                materia: "Química",
+                pergunta: "O aquecimento do e-líquido pode gerar toxinas como:",
+                opcoes: ["Formaldeído", "Oxigênio puro", "Água destilada", "Nitrogênio orgânico"],
+                correta: 0
+            },
+            {
+                materia: "Português",
+                pergunta: "A palavra 'Vape' é um estrangeirismo derivado de qual termo?",
+                opcoes: ["Vaporizador", "Vapor", "Vaporização", "Vagão"],
+                correta: 0
+            }
+        ];
+
+        let perguntaAtual = 0;
+        let pontos = 0;
+        let vidas = 5;
+        let cliquesJogo = 0;
+        let tempoJogo = 30;
+        let timerInterval;
+
+        function mudarTela(idTela) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(idTela).classList.add('active');
+        }
+
+        function iniciarJogo(e) {
+            e.preventDefault();
+            mudarTela('screen-quiz');
+            carregarPergunta();
+        }
+
+        function carregarPergunta() {
+            if (perguntaAtual >= questoes.length) {
+                iniciarMinijogo();
+                return;
+            }
+
+            const q = questoes[perguntaAtual];
+            document.getElementById('discipline-tag').innerText = q.materia;
+            document.getElementById('question-text').innerText = (perguntaAtual + 1) + ". " + q.pergunta;
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            q.opcoes.forEach((opcao, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opcao;
+                btn.onclick = () => responder(idx);
+                container.appendChild(btn);
+            });
+        }
+
+        function responder(idx) {
+            if (idx === questoes[perguntaAtual].correta) {
+                pontos += 50;
+            } else {
+                vidas--;
+            }
+            
+            document.getElementById('score').innerText = `⭐ ${pontos} pts`;
+            document.getElementById('lives').innerText = `❤️ ${vidas}`;
+            
+            perguntaAtual++;
+            carregarPergunta();
+        }
+
+        function iniciarMinijogo() {
+            mudarTela('screen-game');
+            cliquesJogo = 0;
+            tempoJogo = 30;
+            document.getElementById('timer').innerText = tempoJogo + 's';
+            
+            timerInterval = setInterval(() => {
+                tempoJogo--;
+                document.getElementById('timer').innerText = tempoJogo + 's';
+                if (tempoJogo <= 0) {
+                    clearInterval(timerInterval);
+                    pontos += cliquesJogo * 10;
+                    document.getElementById('final-score').innerText = `${pontos} Pts`;
+                    mudarTela('screen-end');
+                }
+            }, 1000);
+        }
+
+        function contarClique() {
+            cliquesJogo++;
+            document.getElementById('game-clicks').innerText = cliquesJogo;
+        }
+    </script>
+</body>
+</html>
